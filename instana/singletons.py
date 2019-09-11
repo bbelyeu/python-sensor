@@ -2,11 +2,18 @@ import sys
 import opentracing
 
 from .agent import Agent
+from .autoprofile import start
 from .tracer import InstanaTracer, InstanaRecorder
 
 
 # The Instana Agent which carries along with it a Sensor that collects metrics.
 agent = Agent()
+
+# AutoProfile
+auto_profile = start(
+    agent_key = 'ec9f4e11633e795a9f8793bb961d1a3d020bc5a4',
+    app_name = "BlueMonkey",
+    debug=True)
 
 
 span_recorder = InstanaRecorder()
