@@ -201,7 +201,7 @@ class Agent(object):
         finally:
             return response
 
-    def report_traces(self, spans):
+    def report_spans(self, spans):
         """
         Used to report entity data (metrics & snapshot) to the host agent.
         """
@@ -217,12 +217,35 @@ class Agent(object):
                                         headers={"Content-Type": "application/json"},
                                         timeout=0.8)
 
-            # logger.warn("report_traces: response.status_code is %s" % response.status_code)
+            # logger.warn("report_spans: response.status_code is %s" % response.status_code)
 
             if response.status_code == 200:
                 self.last_seen = datetime.now()
         except (requests.ConnectTimeout, requests.ConnectionError):
-            logger.debug("report_traces: Instana host agent connection error")
+            logger.debug("report_spans: Instana host agent connection error")
+        finally:
+            return response
+
+    def report_profiles(self, profiles):
+        """
+        Used to report autoprofile data to the host agent.
+        """
+        try:
+            if len(profiles) == 0:
+                return 0
+
+            response = None
+            response = self.client.post(self.__profiles_url(),
+                                        data=to_json(profiles),
+                                        headers={"Content-Type": "application/json"},
+                                        timeout=0.8)
+
+            # logger.warn("report_spans: response.status_code is %s" % response.status_code)
+
+            if response.status_code == 200:
+                self.last_seen = datetime.now()
+        except (requests.ConnectTimeout, requests.ConnectionError):
+            logger.debug("report_spans: Instana host agent connection error")
         finally:
             return response
 
@@ -270,6 +293,13 @@ class Agent(object):
         URL for posting traces to the host agent.  Only valid when announced.
         """
         path = AGENT_TRACES_PATH % self.from_.pid
+        return "http://%s:%s/%s" % (self.host, self.port, path)
+
+    def __profiles_url(self):
+        """
+        URL for posting profiles to the host agent.  Only valid when announced.
+        """
+        path = "com.instana.plugin.python/profiles.%s" % self.from_.pid
         return "http://%s:%s/%s" % (self.host, self.port, path)
 
     def __response_url(self, message_id):
