@@ -8,6 +8,7 @@ class Options(object):
     agent_host = ''
     agent_port = 0
     log_level = logging.WARN
+    autoprofile_enabled = True
 
     def __init__(self, **kwds):
         """ Initialize Options

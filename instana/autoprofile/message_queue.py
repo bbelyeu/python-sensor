@@ -4,6 +4,7 @@ import copy
 
 from .api_request import APIRequest
 from .utils import timestamp, base64_encode
+from ..log import logger
 
 
 class MessageQueue(object):
@@ -79,8 +80,23 @@ class MessageQueue(object):
         self.last_flush_ts = now
 
         try:
-            api_request = APIRequest(self.apagent)
-            api_request.post('upload', payload)
+            # api_request = APIRequest(self.apagent)
+            # api_request.post('upload', payload)
+
+            logger.debug("Reporting profiles: %s" % payload)
+            from ..singletons import agent
+            import os
+
+            req_body = {
+                'runtime': 'python',
+                'pid': os.getpid(),
+                'run_id': self.apagent.run_id,
+                'run_ts': self.apagent.run_ts,
+                'sent_at': timestamp(),
+                'payload': payload,
+            }
+
+            agent.report_profiles(req_body)
 
             # reset backoff
             self.backoff_seconds = 0

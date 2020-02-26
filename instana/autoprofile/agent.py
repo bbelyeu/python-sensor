@@ -21,10 +21,7 @@ from .config import Config
 from .config_loader import ConfigLoader
 from .message_queue import MessageQueue
 from .frame_cache import FrameCache
-from .reporters.process_reporter import ProcessReporter
 from .reporters.profile_reporter import ProfileReporter, ProfilerConfig
-from .reporters.error_reporter import ErrorReporter
-from .reporters.span_reporter import SpanReporter
 from .profilers.cpu_profiler import CPUProfiler
 from .profilers.allocation_profiler import AllocationProfiler
 from .profilers.block_profiler import BlockProfiler
@@ -52,7 +49,7 @@ class Span(object):
         self.stop()
 
 
-class Agent(object):
+class AutoProfileAgent(object):
 
     AGENT_VERSION = "1.2.6"
     SAAS_DASHBOARD_ADDRESS = "https://agent-api.stackimpact.com"
@@ -72,9 +69,6 @@ class Agent(object):
         self.config_loader = ConfigLoader(self)
         self.message_queue = MessageQueue(self)
         self.frame_cache = FrameCache(self)
-        self.process_reporter = ProcessReporter(self)
-        self.error_reporter = ErrorReporter(self)
-        self.span_reporter = SpanReporter(self)
 
         config = ProfilerConfig()
         config.log_prefix = 'CPU profiler'
@@ -132,18 +126,6 @@ class Agent(object):
         if 'auto_profiling' not in self.options:
             self.options['auto_profiling'] = True
 
-        if 'dashboard_address' not in self.options:
-            self.options['dashboard_address'] = self.SAAS_DASHBOARD_ADDRESS
-
-        if 'agent_key' not in self.options:
-            raise Exception('missing option: agent_key')
-
-        if 'app_name' not in self.options:
-            raise Exception('missing option: app_name')
-
-        if 'host_name' not in self.options:
-            self.options['host_name'] = socket.gethostname()
-
         self.run_id = generate_uuid()
         self.run_ts = timestamp()
 
@@ -154,9 +136,6 @@ class Agent(object):
         self.cpu_reporter.setup()
         self.allocation_reporter.setup()
         self.block_reporter.setup()
-        self.span_reporter.setup()
-        self.error_reporter.setup()
-        self.process_reporter.setup()
 
         # execute main_thread_func in main thread on signal
         def _signal_handler(signum, frame):
@@ -204,9 +183,6 @@ class Agent(object):
             self.cpu_reporter.start()
             self.allocation_reporter.start()
             self.block_reporter.start()
-            self.span_reporter.start()
-            self.error_reporter.start()
-            self.process_reporter.start()
             self.config.set_agent_enabled(True)
 
 
@@ -215,9 +191,6 @@ class Agent(object):
             self.cpu_reporter.stop()
             self.allocation_reporter.stop()
             self.block_reporter.stop()
-            self.span_reporter.stop()
-            self.error_reporter.stop()
-            self.process_reporter.stop()
             self.config.set_agent_enabled(False)
 
 
@@ -253,7 +226,7 @@ class Agent(object):
             if not self.get_option('auto_profiling'):
                 self.config_loader.load(True)
                 if selected_reporter:
-                    selected_reporter.report(True);
+                    selected_reporter.report(True)
                 self.message_queue.flush(True)
 
             self.span_active = False
@@ -321,16 +294,10 @@ class Agent(object):
         self.cpu_reporter.stop()
         self.allocation_reporter.stop()
         self.block_reporter.stop()
-        self.error_reporter.stop()
-        self.span_reporter.stop()
-        self.process_reporter.stop()
 
         self.cpu_reporter.destroy()
         self.allocation_reporter.destroy()
         self.block_reporter.destroy()
-        self.error_reporter.destroy()
-        self.span_reporter.destroy()
-        self.process_reporter.destroy()
 
         self.agent_destroyed = True
         self.log('AutoProfile agent destroyed')
